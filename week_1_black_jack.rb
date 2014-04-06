@@ -10,12 +10,12 @@ class Card
   end
   
   def identify
-    if self.face == "Ace"
+    if self.face == "Ace" || self.face == '8'
       letter = "an"
     else
       letter = "a"
     end
-    "#{letter} #{@face} of #{@suit}"
+    return "#{letter} #{@face} of #{@suit}"
   end
 end
 
@@ -31,6 +31,7 @@ class Player
   end
   
   def calculate_total
+    @total = 0
     @hand.each do |card|
       @total += card.value
     end
@@ -47,21 +48,27 @@ class Player
 end
 
 
-$deck = []
 
 
 
+def player_wins(player)
+  puts "#{player.player_name} got 21 and won the game!"
+  Process.exit
+end
 
-
-
+def player_busts(player)
+  puts "#{player.player_name} busted and loses!"
+  Process.exit
+end
+  
 #must be run everytime a card is dealt to a player
 def win_or_bust(player)
-   if player.calculate_total == 21
-      puts "#{player.player_name} got 21 and won the game!"
-      player.won = true
-   elsif player.calculate_total > 21
-      puts "#{player.player_name} busted and loses!"
-      player.bust = true
+   total = player.calculate_total
+ 
+   if total == 21
+      player_wins(player)
+   elsif total > 21
+      player_busts(player)
    end
 end
 
@@ -70,15 +77,14 @@ def deal_card(deck,player)
   card = deck.pop
   ace_checker(card,player)
   player.hand.push(card)
-  puts"#{player.player_name} received a #{card.identify}"
-  puts "Current hand: "
-  player.display_hand
+  puts"#{player.player_name} received #{card.identify}"
+  puts "Current hand: #{player.display_hand}"
   win_or_bust(player)
   hit_or_stay(player)
 end
 
 
-def deal_to_dealer(player)
+def deal_to_dealer(deck,player)
   card = deck.pop
   ace_checker(card,player)
   player.hand.push(card)
@@ -93,28 +99,28 @@ end
 def compare_hands(player1,player2)
   if player1.calculate_total > player2.calculate_total
     puts "#{player1.player_name} has #{player1.calculate_total} and wins the game."
-    player1.won = true
+    Process.exit
   elsif player1.calculate_total < player2.calculate_total
     puts "#{player2.player_name} has #{player2.calculate_total} and wins the game."
-    player2.won = true
+    Process.exit
   else
     puts "Tie game! Dealer wins!"
-    dealer.won = true
-    break
+    Process.exit
   end
 end
 
 
 
-def dealer_hit_or_stay(dealer)
-stay = false
+def dealer_hit_or_stay(dealer, user)
+  stay = false
   until stay == true
-  puts "Will #{dealer.player_name} hit or stay?"
-  answer = gets.chomp.downcase
-  if answer == "hit"
-    deal_card($deck,dealer)
-  elsif answer == 'stay'
-    stay == true
+    puts "Will #{dealer.player_name} hit or stay?"
+    answer = gets.chomp.downcase
+    if answer == "hit"
+      deal_to_dealer($deck,dealer)
+    elsif answer == 'stay'
+      stay = true
+    end
   end
   compare_hands(user,dealer)
 end
@@ -124,13 +130,15 @@ end
 #prompt the player
 def hit_or_stay(player)
   stay = false
+
   until stay == true
-  puts "Will #{player.player_name} hit or stay?"
-  answer = gets.chomp.downcase
-  if answer == "hit"
-    deal_card($deck,player)
-  elsif answer == 'stay'
-    stay == true
+    puts "Will #{player.player_name} hit or stay?"
+    answer = gets.chomp
+    if answer == "hit"
+      deal_card($deck,player)
+    elsif answer == 'stay'
+      stay = true
+    end
   end
 end
 
@@ -138,48 +146,46 @@ end
 def first_deal(deck,player)
   c1 = deck.pop
   c2 = deck.pop
-  ace_checker(c1)
-  ace_checker(c2)
+  ace_checker(c1,player)
+  ace_checker(c2,player)
   player.hand.push(c1,c2)
-  puts"#{player.player_name} received a #{c1.identify}"
-  puts"#{player.player_name} received a #{c2.identify}"
-  puts "Current hand: "
-  player.display_hand
+  puts"#{player.player_name} received #{c1.identify}"
+  puts"#{player.player_name} received #{c2.identify}"
+  puts "Current hand: #{player.display_hand}"
   win_or_bust(player)
   hit_or_stay(player)
 end
 
   
 def ace_checker(card,player)
-  if card.face == "Ace" && player.calculate_total + 11 > 21
+  if card.face == "Ace" && player.total + 11 > 21
     card.value = 1
-  elsif card.face == "Ace" && player.calculate_total + 11 < 21
-    card.value == 11
+  elsif card.face == "Ace" && player.total + 11 < 21
+    card.value = 11
   end
 end
     
 
 
 
-
-
-def first_dealer_deal(player)
-  until player.hand >= 17
+def first_dealer_deal(deck,dealer, user)
+  until dealer.total >= 17
     card = deck.pop
-    ace_checker(card,player)
-    player.hand.push(card)
-    puts"#{player.player_name} received a #{card.identify}"
-    puts "Current hand: "
-    player.display_hand
-    win_or_bust(player)
+    ace_checker(card,dealer)
+    dealer.hand.push(card)
+    puts"#{dealer.player_name} received #{card.identify}"
+    puts "Current hand: #{dealer.display_hand}"
+    win_or_bust(dealer)
   end
-  dealer_hit_or_stay(player)
+  dealer_hit_or_stay(dealer, user)
 end
 
 
 
 #create deck
 #create combos of faces & suits
+
+$deck = []
 faces = %w{ 2 3 4 5 6 7 8 9 10 Jack King Queen Ace }
 
 suits = %w{ Hearts Spades Diamonds Clubs}
@@ -212,6 +218,8 @@ end
 
 $deck.shuffle!
 
+
+
 #create players
 user = Player.new
 dealer = Player.new
@@ -222,10 +230,13 @@ user.player_name = name
 puts "Let's get started!"
 
 
-until game_over?(user) || game_over?(dealer)
-  first_deal($deck,user)
-  first_dealer_deal(dealer)
-end
+
+
+first_deal($deck,user)
+puts "\n\n=== Now it's the dealer's turn... ===\n\n"
+first_dealer_deal($deck,dealer, user)
+
+
 puts "Thank you for playing!" 
 
 
