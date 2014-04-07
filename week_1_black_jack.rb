@@ -47,7 +47,12 @@ class Player
   end
 end
 
-
+class Deck
+  attr_accessor :deck
+  def initialize
+    @deck = []
+  end
+end
 
 
 
@@ -73,8 +78,8 @@ def win_or_bust(player)
 end
 
 #popping, checking, and pushing to player's hand
-def deal_card(deck,player)
-  card = deck.pop
+def deal_card(game_deck,player)
+  card = game_deck.deck.pop
   ace_checker(card,player)
   player.hand.push(card)
   puts"#{player.player_name} received #{card.identify}"
@@ -84,13 +89,12 @@ def deal_card(deck,player)
 end
 
 
-def deal_to_dealer(deck,player)
-  card = deck.pop
+def deal_to_dealer(game_deck,player)
+  card = game_deck.deck.pop
   ace_checker(card,player)
   player.hand.push(card)
   puts"#{player.player_name} received a #{card.identify}"
-  puts "Current hand: "
-  player.display_hand
+  puts "Current hand: #{player.display_hand}"
   win_or_bust(player)
   dealer_hit_or_stay(player)
 end
@@ -117,7 +121,7 @@ def dealer_hit_or_stay(dealer, user)
     puts "Will #{dealer.player_name} hit or stay?"
     answer = gets.chomp.downcase
     if answer == "hit"
-      deal_to_dealer($deck,dealer)
+      deal_to_dealer(game_deck,dealer)
     elsif answer == 'stay'
       stay = true
     end
@@ -135,7 +139,7 @@ def hit_or_stay(player)
     puts "Will #{player.player_name} hit or stay?"
     answer = gets.chomp
     if answer == "hit"
-      deal_card($deck,player)
+      deal_card(game_deck,player)
     elsif answer == 'stay'
       stay = true
     end
@@ -143,9 +147,9 @@ def hit_or_stay(player)
 end
 
 
-def first_deal(deck,player)
-  c1 = deck.pop
-  c2 = deck.pop
+def first_deal(game_deck,player)
+  c1 = game_deck.deck.pop
+  c2 = game_deck.deck.pop
   ace_checker(c1,player)
   ace_checker(c2,player)
   player.hand.push(c1,c2)
@@ -168,9 +172,9 @@ end
 
 
 
-def first_dealer_deal(deck,dealer, user)
+def first_dealer_deal(game_deck,dealer, user)
   until dealer.total >= 17
-    card = deck.pop
+    card = game_deck.deck.pop
     ace_checker(card,dealer)
     dealer.hand.push(card)
     puts"#{dealer.player_name} received #{card.identify}"
@@ -182,15 +186,24 @@ end
 
 
 
-#create deck
+
 #create combos of faces & suits
 
-$deck = []
+
 faces = %w{ 2 3 4 5 6 7 8 9 10 Jack King Queen Ace }
 
 suits = %w{ Hearts Spades Diamonds Clubs}
 
-
+#create all 52 cards,assign values, & populate deck
+def unique_cards(game_deck, faces, suits)
+  faces.each do |face|
+    suits.each do |suit|
+      c = Card.new(face,suit)
+      card_value_determiner(c)
+      game_deck.deck << c
+    end
+  end
+end
 
 #determine value based on face for cards
 def card_value_determiner(card)
@@ -204,25 +217,19 @@ def card_value_determiner(card)
   end
 end
 
+game_deck = Deck.new
+
+unique_cards(game_deck, faces, suits)
 
 
-#create all 52 cards,assign values, & populate deck
-faces.each do |face|
-  suits.each do |suit|
-    c = Card.new(face,suit)
-    card_value_determiner(c)
-    $deck << c
-  end
-end
-
-
-$deck.shuffle!
+game_deck.deck.shuffle!
 
 
 
 #create players
 user = Player.new
 dealer = Player.new
+
 dealer.player_name = "Dealer"
 puts "Welcome to Blackjack! What is your name?"
 name = gets.chomp
@@ -232,9 +239,9 @@ puts "Let's get started!"
 
 
 
-first_deal($deck,user)
+first_deal(game_deck,user)
 puts "\n\n=== Now it's the dealer's turn... ===\n\n"
-first_dealer_deal($deck,dealer, user)
+first_dealer_deal(game_deck,dealer, user)
 
 
 puts "Thank you for playing!" 
